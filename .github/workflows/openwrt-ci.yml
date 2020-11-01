@@ -48,12 +48,62 @@ jobs:
 
       - name: Update feeds
         run: |
+          echo 'src-git helloworld https://github.com/fw876/helloworld' >> ./feeds.conf.default
           sed -i 's/#src-git helloworld/src-git helloworld/g' ./feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
       - name: Generate configuration file
-        run: make defconfig
+        run: |
+          rm -f ./.config*
+          touch ./.config
+          cat >> .config <<EOF
+          #
+          # ========================固件定制部分========================
+          #
+          CONFIG_TARGET_ramips=y
+          CONFIG_TARGET_ramips_mt76x8=y
+          CONFIG_TARGET_ramips_mt76x8_DEVICE_hiwifi_hc5661a=y
+          CONFIG_PACKAGE_etherwake=m
+          CONFIG_PACKAGE_libatomic=y
+          CONFIG_PACKAGE_libnss=y
+          CONFIG_PACKAGE_libsqlite3=y
+          # CONFIG_PACKAGE_libuuid is not set
+          # CONFIG_PACKAGE_luci-app-ddns is not set
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_NaiveProxy=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Server=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray=y
+          CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray_plugin=y
+          # CONFIG_PACKAGE_luci-app-upnp is not set
+          CONFIG_PACKAGE_luci-app-wol=m
+          CONFIG_PACKAGE_luci-i18n-wol-zh-cn=m
+          # CONFIG_PACKAGE_miniupnpd is not set
+          CONFIG_PACKAGE_naiveproxy=y
+          CONFIG_PACKAGE_nspr=y
+          CONFIG_PACKAGE_shadowsocksr-libev-server=y
+          CONFIG_PACKAGE_v2ray=y
+          CONFIG_PACKAGE_v2ray-plugin=y
+          CONFIG_PACKAGE_wol=m
+          CONFIG_SQLITE3_DYNAMIC_EXTENSIONS=y
+          CONFIG_SQLITE3_FTS3=y
+          CONFIG_SQLITE3_FTS4=y
+          CONFIG_SQLITE3_FTS5=y
+          CONFIG_SQLITE3_JSON1=y
+          CONFIG_SQLITE3_RTREE=y
+          CONFIG_V2RAY_COMPRESS_GOPROXY=y
+          CONFIG_V2RAY_COMPRESS_UPX=y
+          CONFIG_V2RAY_EXCLUDE_ASSETS=y
+          CONFIG_V2RAY_EXCLUDE_V2CTL=y
+          CONFIG_V2RAY_JSON_INTERNAL=y
+          #
+          # ========================固件定制部分结束========================
+          #
+          EOF
+          sed -i 's/^[ \t]*//g' ./.config
+          make defconfig
+          sed -i "2i # network config" ./package/lean/default-settings/files/zzz-default-settings
+          # 默认 IP 地址，旁路由时不会和主路由的 192.168.1.1 冲突
+          sed -i "3i uci set network.lan.ipaddr='192.168.12.12'" ./package/lean/default-settings/files/zzz-default-settings
 
       - name: Make download
         run: |
